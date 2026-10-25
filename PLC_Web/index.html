@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1c2733">
+<meta name="color-scheme" content="dark">
+<title>PLC Demo</title>
+
+<style>
+
+:root{
+  --bg:#1c2733;
+  --plate:#243241;
+  --line:#344557;
+  --text:#e8eef4;
+  --muted:#8fa2b5;
+  --on:#38d97a;
+  --on-glow:rgba(56,217,122,.5);
+  --off:#7d2230;
+  --round:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+}
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  padding-top:env(safe-area-inset-top,0px);
+}
+
+.app{
+  max-width:480px;
+  margin:0 auto;
+  padding:22px 18px calc(110px + env(safe-area-inset-bottom,0px));
+}
+
+/* ---------- header ---------- */
+
+header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:20px;
+}
+
+h1{
+  margin:0;
+  font:800 28px/1.1 var(--round);
+  letter-spacing:-.02em;
+}
+
+.sub{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.conn{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 11px;
+  border-radius:999px;
+  background:var(--plate);
+  border:1px solid var(--line);
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+  white-space:nowrap;
+}
+
+.conn i{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#c9a227;
+}
+
+.conn.ok{ color:var(--on); }
+.conn.ok i{ background:var(--on); box-shadow:0 0 8px var(--on-glow); }
+.conn.bad{ color:#ff7b86; }
+.conn.bad i{ background:#e5484d; }
+
+/* ---------- pilot lamps ---------- */
+
+.stages{
+  list-style:none;
+  margin:0;
+  padding:18px;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  background:var(--plate);
+  border:1px solid var(--line);
+  border-radius:22px;
+}
+
+/* rail linking the lamps in sequence */
+.stages::before{
+  content:"";
+  position:absolute;
+  left:46.5px;
+  top:46px;
+  bottom:46px;
+  width:3px;
+  background:var(--line);
+  border-radius:2px;
+}
+
+.stage{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+
+.bezel{
+  position:relative;
+  z-index:1;
+  flex:none;
+  width:56px;
+  height:56px;
+  padding:6px;
+  border-radius:50%;
+  background:linear-gradient(145deg,#74889c,#2c3a49 55%,#566b7f);
+  box-shadow:0 2px 6px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.25);
+}
+
+.led{
+  position:relative;
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#b8404f,var(--off) 55%,#4a1019);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.5);
+  transition:box-shadow .25s;
+}
+
+/* lit lens fades in over the dark one */
+.led::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#d4ffe5,var(--on) 45%,#14914a);
+  opacity:0;
+  transition:opacity .25s;
+}
+
+/* glass highlight */
+.led::after{
+  content:"";
+  position:absolute;
+  left:20%;
+  top:12%;
+  width:38%;
+  height:24%;
+  border-radius:50%;
+  background:rgba(255,255,255,.35);
+  transform:rotate(-30deg);
+}
+
+.stage.on .led{
+  box-shadow:0 0 20px 5px var(--on-glow),inset 0 -3px 6px rgba(0,60,25,.45);
+}
+.stage.on .led::before{ opacity:1; }
+
+.meta{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.meta b{
+  font-size:19px;
+  font-weight:650;
+}
+
+.meta span{
+  color:var(--muted);
+  font-size:13px;
+  font-variant-numeric:tabular-nums;
+}
+
+.state{
+  margin-left:auto;
+  min-width:52px;
+  text-align:center;
+  padding:6px 12px;
+  border-radius:999px;
+  background:rgba(0,0,0,.22);
+  color:var(--muted);
+  font-size:14px;
+  font-weight:700;
+}
+
+.stage.on .state{
+  background:rgba(56,217,122,.15);
+  color:var(--on);
+}
+
+/* ---------- timer ---------- */
+
+.timer-card{
+  margin-top:16px;
+  padding:18px 18px 14px;
+  background:var(--plate);
+  border:1px solid var(--line);
+  border-radius:22px;
+}
+
+.timer-card .cap{
+  color:var(--muted);
+  font-size:14px;
+  font-weight:600;
+}
+
+h2#timer{
+  margin:4px 0 16px;
+  font:800 60px/1 var(--round);
+  letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;
+}
+
+#timer small{
+  margin-left:4px;
+  font-size:20px;
+  font-weight:600;
+  letter-spacing:0;
+  color:var(--muted);
+}
+
+#bar{
+  position:relative;
+  width:100%;
+  height:16px;
+  background:#111b25;
+  border-radius:8px;
+  overflow:hidden;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.5);
+}
+
+#fill{
+  width:0%;
+  height:100%;
+  background:linear-gradient(90deg,#1fb862,var(--on));
+  border-radius:8px;
+  transition:width .12s linear;
+}
+
+/* one tick per second */
+#bar::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(90deg,
+    transparent 0,transparent calc(10% - 2px),
+    rgba(28,39,51,.75) calc(10% - 2px),rgba(28,39,51,.75) 10%);
+}
+
+.scale{
+  display:flex;
+  justify-content:space-between;
+  margin-top:8px;
+  color:var(--muted);
+  font-size:12px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- start button (thumb zone) ---------- */
+
+.dock{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  padding:26px 18px calc(14px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(to top,var(--bg) 62%,rgba(28,39,51,0));
+}
+
+.row{
+  display:flex;
+  gap:12px;
+  max-width:444px;
+  margin:0 auto 6px;
+}
+
+button{
+  flex:1;
+  height:64px;
+  border:0;
+  border-radius:18px;
+  font:800 22px/1 var(--round);
+  letter-spacing:.06em;
+  color:#06240f;
+  background:linear-gradient(#52e890,#2fcf6f);
+  box-shadow:0 6px 0 #167a3e,0 14px 24px rgba(0,0,0,.4);
+  touch-action:manipulation;
+  transition:transform .08s,box-shadow .08s;
+}
+
+button:active{
+  transform:translateY(5px);
+  box-shadow:0 1px 0 #167a3e,0 4px 10px rgba(0,0,0,.4);
+}
+
+button.stop{
+  color:#fff;
+  background:linear-gradient(#f0535c,#d8323d);
+  box-shadow:0 6px 0 #8f1d28,0 14px 24px rgba(0,0,0,.4);
+}
+
+button.stop:active{
+  box-shadow:0 1px 0 #8f1d28,0 4px 10px rgba(0,0,0,.4);
+}
+
+button small{
+  margin-left:6px;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:0;
+  opacity:.75;
+}
+
+button:focus-visible{
+  outline:3px solid #fff;
+  outline-offset:3px;
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before{ transition:none !important; }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <header>
+    <div>
+      <h1>Star Delta Demo</h1>
+      <p class="sub">Live status from the PLC</p>
+    </div>
+    <div id="conn" class="conn"><i></i><span>Connecting</span></div>
+  </header>
+
+  <ul class="stages">
+
+    <li class="stage">
+      <div class="bezel"><div id="latch" class="led"></div></div>
+      <div class="meta"><b>Latch</b><span>M12.0</span></div>
+      <span class="state">Off</span>
+    </li>
+
+    <li class="stage">
+      <div class="bezel"><div id="star" class="led"></div></div>
+      <div class="meta"><b>Star</b><span>M12.2</span></div>
+      <span class="state">Off</span>
+    </li>
+
+    <li class="stage">
+      <div class="bezel"><div id="delta" class="led"></div></div>
+      <div class="meta"><b>Delta</b><span>M12.3</span></div>
+      <span class="state">Off</span>
+    </li>
+
+  </ul>
+
+  <section class="timer-card">
+    <div class="cap">Timer</div>
+    <h2 id="timer">0.0<small>sec</small></h2>
+    <div id="bar">
+      <div id="fill"></div>
+    </div>
+    <div class="scale"><span>0</span><span>10 sec</span></div>
+  </section>
+
+</div>
+
+<div class="dock">
+  <div class="row">
+    <button class="stop" onclick="stopPB()">STOP<small>M1.7</small></button>
+    <button onclick="startPB()">START<small>M1.3</small></button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+const socket = io();
+
+function startPB(){
+
+fetch("/start");
+
+}
+
+function stopPB(){
+
+fetch("/stop");
+
+}
+
+function setLamp(id, on){
+
+const lamp = document.getElementById(id);
+const row = lamp.closest(".stage");
+
+row.classList.toggle("on", !!on);
+row.querySelector(".state").textContent = on ? "On" : "Off";
+
+}
+
+const conn = document.getElementById("conn");
+
+function setConn(state, text){
+
+conn.className = "conn " + state;
+conn.querySelector("span").textContent = text;
+
+}
+
+socket.on("connect",()=>setConn("ok","Live"));
+socket.on("disconnect",()=>setConn("bad","Offline"));
+
+socket.on("update",(data)=>{
+
+setLamp("latch", data.latch);
+setLamp("star", data.star);
+setLamp("delta", data.delta);
+
+let percent=(data.timer/10)*100;
+
+document.getElementById("fill").style.width =
+Math.max(0,Math.min(100,percent))+"%";
+
+document.getElementById("timer").innerHTML =
+data.timer.toFixed(1)+"<small>sec</small>";
+
+});
+
+</script>
+
+</body>
+</html>

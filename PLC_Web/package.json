@@ -1,0 +1,14 @@
+{
+  "name": "plc-star-delta-hmi",
+  "version": "1.0.0",
+  "description": "Phone-based HMI for a Siemens S7 star-delta starter demo (Node.js, Socket.IO, nodes7)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "nodes7": "^0.3.18",
+    "socket.io": "^4.8.1"
+  }
+}
